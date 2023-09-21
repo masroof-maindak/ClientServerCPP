@@ -1,3 +1,6 @@
+#ifndef Queue_h
+#define Queue_h
+
 template <class T>
 class Queue
 {
@@ -20,3 +23,5 @@ public:
     void print(); // print your queue from front to back
     ~Queue(); // deallocates memory
 };
+
+#endif /* Queue_h */
