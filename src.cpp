@@ -3,6 +3,10 @@
 #include <unistd.h>      // for close
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <fcntl.h>       //non-blocking 
+#include <thread>
+#include <vector>
+#include "Queue/Queue.h"
 
 using namespace std;
 
@@ -15,6 +19,53 @@ int fibonacci(int n) {
         return fibonacci(n - 1) + fibonacci(n - 2);
     }
 }
+
+void handleClient(int clientSocket) {
+
+    // Set the client socket to non-blocking mode
+    if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) == -1) {
+        perror("Setting socket to non-blocking mode failed");
+        close(clientSocket);
+        return;
+    }
+
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    ssize_t bytesRead;
+
+    // Loop to receive and process data from the client
+    while (true) {
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+        if (bytesRead < 0) {
+            // Handle non-blocking operation (e.g., no data available)
+            // You can add custom logic here if needed
+        } else if (bytesRead == 0) {
+            // Client disconnected
+            std::cout << "Client disconnected" << std::endl;
+            break;
+        } else {
+            int n = std::stoi(buffer);
+            int fibo = fibonacci(n);
+            std::string nthFibo = std::to_string(fibo) + "~\n";
+            // Process and respond to the received data
+            // Example: send back the received data
+            send(clientSocket, nthFibo.c_str(), nthFibo.length(), 0);
+        }
+
+        // Clear the buffer for the next iteration
+        memset(buffer, 0, sizeof(buffer));
+    }
+
+
+
+    close(clientSocket);
+}
+
+
+
+
+
 
 int main() {
     // Create a socket
@@ -48,44 +99,30 @@ int main() {
 
     std::cout << "Server listening on port 8080..." << std::endl;
 
-    // Accept incoming connections
-    struct sockaddr_in clientAddr;
-    socklen_t clientAddrLen = sizeof(clientAddr);
-    int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
-    if (clientSocket == -1) {
-        perror("Failed to accept connection!");
-        return 1;
-    }
+    // store new client in a thread
+    std::vector<std::thread> clientThreads;
 
-    std::cout << "Client connected" << std::endl;
+
 
     // Communication with the client
-    char buffer[1024];
     while (true) {
-        memset(buffer, 0, sizeof(buffer));
-        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        //check if client transmitted 0 bytes (disconnected)
-        if (bytesRead <= 0) {
-            if (bytesRead == 0) {
-                std::cout << "Client disconnected" << std::endl;
-            } else {
-                perror("Error in receiving data");
-            }
-            break;
+        
+        // Accept incoming connections
+        struct sockaddr_in clientAddr;
+        socklen_t clientAddrLen = sizeof(clientAddr);
+        int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+        if (clientSocket == -1) {
+            perror("Failed to accept connection!");
+            return 1;
         }
 
-        //get nth fibonacci number from user input
-        int n = std::stoi(buffer);
-        int fibo = fibonacci(n);
-        std::string nthFibo = std::to_string(fibo) + "~\n";
+        std::cout << "Client connected" << std::endl;
 
-        // Process and respond to the received data
-        // Example: send back the received data
-        send(clientSocket, nthFibo.c_str(), nthFibo.length(), 0);
+        clientThreads.emplace_back(handleClient, clientSocket);
+
     }
 
     // Close sockets
-    close(clientSocket);
     close(serverSocket);
 
     return 0;
