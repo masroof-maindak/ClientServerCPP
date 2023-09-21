@@ -95,7 +95,7 @@ inline T Queue<T>::back()
     return arr[_back];
 }
 
-// print queue
+//print queue
 template <class T>
 inline void Queue<T>::print()
 {
@@ -105,6 +105,7 @@ inline void Queue<T>::print()
     cout << "\n";
 }
 
+//destructor
 template <class T>
 inline Queue<T>::~Queue()
 {
