@@ -1,5 +1,5 @@
-#ifndef Queue_h
-#define Queue_h
+#ifndef QUEUE_H
+#define QUEUE_H
 
 using namespace std;
 
@@ -42,8 +42,7 @@ inline void Queue<T>::push_back(T data)
         _front = 0;
         _back = width;
     }
-    arr[_back] = data;
-    _back++;
+    arr[_back++] = data;
 }
 
 //pop
@@ -112,4 +111,135 @@ inline Queue<T>::~Queue()
     delete[] arr;
 }
 
-#endif /* Queue_h */
+
+
+template <class T>
+class CircularQueue : public Queue
+{
+public:
+    void push_back(T data){
+        bool backIsBehind = false;
+
+        int size = 0;
+        if(_back < _front) {
+            size = _back + (capacity - _front);
+            backIsBehind = true;
+        } else { //back is ahead of front
+            size = _back - _front;
+        }
+
+        if(size == capacity - 1) {
+            
+            int prevCap = capacity;
+            capacity *= 2;
+            T* temp = new T[capacity];
+
+            if(backIsBehind){
+                for(int i = _front; i < prevCap; i++) {
+                    temp[i] = arr[i];
+                }
+                for(int i = 0; i < _back; i++) {
+                    temp[i + prevCap] = arr[i];
+                }   
+            } else {
+                for(int i = _front; i < _back; i++) {
+                    temp[i] = arr[i];
+                }
+            }
+        }
+        
+        //back needs to always be 1 index ahead of front so that if _front hits capacity
+        //it can loop back to 0
+        _back = (_back + 1) % capacity;
+        arr[_back] = data;
+    }
+
+    void pop_front(){
+        if(_front == _back) {
+            cout << "Queue is empty\n";
+            return;
+        } else if (_front == capacity - 1) {
+            _front = 0;
+            return;
+        } //else
+        front++;
+    }
+
+    void print(){
+        if(_front == _back) {
+            cout << "Queue is empty\n";
+            return;
+        } else if(_back >= _front) {
+            for(int i = _front; i < _back; i++) {
+                cout << arr[i] << " ";
+            }
+        } else {
+            for(int i = _front; i < capacity; i++) {
+                cout << arr[i] << " ";
+            }
+            for(int i = 0; i < _back; i++) {
+                cout << arr[i] << " ";
+            }
+        }
+    }
+
+};
+
+template <class T>
+class Deque : public Queue
+{
+public:
+    void push_front(T data) {
+        if(_front == 0) {
+            cout << "Front is at first index, can't insert further.\n";
+            return;
+        } //else
+        arr[_front--;] = data;
+    }
+
+    void pop_back() {
+        if(_back == _front) {
+            cout << "Back is at first index, can't pop further.\n";
+            return;
+        } //else
+        back--;
+    }
+};
+
+template <class T>
+class PriorityQueue : public Queue
+{    
+public:
+    void push_back(T data) {
+        //filthy bruteforce
+        //too tired to do anything else right now to be honest
+        if(size() == capacity) {
+            capacity *= 2;
+            int width = size();
+
+            T* temp = new T[capacity];
+            for(int i = 0; i < width; i++) {
+                temp[i] = arr[i + _front];
+            }
+            delete[] arr;
+            arr = temp;
+
+            _front = 0;
+            _back = width;
+        }
+
+        arr[_back++] = data;
+
+        if(_back == 1) return; //if only one element, no need to sort
+
+        int insertionIndex = back - 1;
+        while(arr[insertionIndex] > arr[insertionIndex - 1] and insertionIndex > _front) {
+            T temp = arr[insertionIndex];
+            arr[insertionIndex] = arr[insertionIndex - 1];
+            arr[insertionIndex - 1] = temp;
+            insertionIndex--;
+        }
+    }
+};
+
+#endif /* QUEUE_H */

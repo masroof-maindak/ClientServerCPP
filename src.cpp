@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include "Queue/queue.h"
 
 const int PORT = 8080;
 const int MAX_CLIENTS = 5;
