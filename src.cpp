@@ -20,12 +20,12 @@ int main() {
     socklen_t clientAddrLen = sizeof(clientAddr);
     fd_set readfds;
 
-    // Initialize client sockets to -1 (unused)
+    // Initialize client sockets to -1 (i.e unused)
     for (int i = 0; i < MAX_CLIENTS; ++i) {
         clientSockets[i] = -1;
     }
 
-    // Create socket
+    // Create server socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
         perror("Socket creation failed");
@@ -57,14 +57,26 @@ int main() {
 
     while (true) {
         FD_ZERO(&readfds);
+
+	//adds server socket to readfds
         FD_SET(serverSocket, &readfds);
 
-        // Add client sockets to the set
+        // Add client sockets to the file descriptor set
         int maxfd = serverSocket;
         for (int i = 0; i < MAX_CLIENTS; ++i) {
+
+	    //if clientSocket[i] is in use
             if (clientSockets[i] != -1) {
+
+		//add client socket to readfds
+		//and make it so that 'select' will monitor this socket for incoming data
                 FD_SET(clientSockets[i], &readfds);
+
+		//if new clientSocket value is higher
                 if (clientSockets[i] > maxfd) {
+
+		    //update maxfd so 'select' checks all relevant client sockets
+		    //up to the highest file descriptor number
                     maxfd = clientSockets[i];
                 }
             }
@@ -73,8 +85,11 @@ int main() {
         // Wait for activity on sockets
         select(maxfd + 1, &readfds, NULL, NULL, NULL);
 
-        // Check for incoming connection
+        // Check for incoming connection on SERVER SOCKET
+	// if present, it would've been added to read fds in the for loop above
         if (FD_ISSET(serverSocket, &readfds)) {
+	
+	    //accept it in clientSocket
             int clientSocket = accept(serverSocket, (struct sockaddr*) &clientAddr, &clientAddrLen);
 
             // Make the client socket non-blocking
@@ -84,7 +99,7 @@ int main() {
 		return 1;
 	    }
 
-            // Add client socket to the list
+            // Add client socket to first non-empty spot in the array
             for (int i = 0; i < MAX_CLIENTS; ++i) {
                 if (clientSockets[i] == -1) {
                     clientSockets[i] = clientSocket;
@@ -96,29 +111,39 @@ int main() {
 
         // Handle data from clients
         for (int i = 0; i < MAX_CLIENTS; ++i) {
+
+	    // Check of incoming connection on CLIENT SOCKET
             if (clientSockets[i] != -1 && FD_ISSET(clientSockets[i], &readfds)) {
+		
+		//make char array
                 char buffer[1024];
+
+		//sets all values in array to 0
                 memset(buffer, 0, sizeof(buffer));
 
+		//in clientSockets[i], recv data (of max size `sizeof(buffer)`,
+		//store it in buffer, and there are no special flags (0)
                 int bytesRead = recv(clientSockets[i], buffer, sizeof(buffer), 0);
 
                 if (bytesRead <= 0) {
                     // Client disconnected
                     close(clientSockets[i]);
                     std::cout << "Client disconnected." << std::endl;
+		    //set value in array as null
                     clientSockets[i] = -1;
+
                 } else {
-                    // Calculate Fibonacci and send the result back as a string
+                    // Calculate Fibonacci
                     int n = std::atoi(buffer);
                     int result = fibonacci(n);
-                    std::string resultStr = std::to_string(result) + "~\n";
-                    send(clientSockets[i], resultStr.c_str(), resultStr.size(), 0);
+                    std::string fibo = std::to_string(result) + "~\n";
+                    send(clientSockets[i], fibo.c_str(), fibo.size(), 0);
                 }
             }
         }
     }
 
-    // Close server socket (this part will never be reached in this example)
+    // Close server socket
     close(serverSocket);
 
     return 0;
