@@ -1,128 +1,124 @@
 #include <iostream>
-#include <cstring>       // for memset
-#include <unistd.h>      // for close
+#include <cstring>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <fcntl.h>       //non-blocking 
-#include <thread>
-#include <vector>
-#include "Queue/queue.h"
+#include <fcntl.h>
 
-using namespace std;
+const int PORT = 8080;
+const int MAX_CLIENTS = 5;
 
 int fibonacci(int n) {
-    if (n <= 0) {
-        return 0;
-    } else if (n == 1) {
-        return 1;
-    } else {
-        return fibonacci(n - 1) + fibonacci(n - 2);
-    }
+    if (n <= 0) return 0;
+    if (n == 1) return 1;
+    return fibonacci(n - 1) + fibonacci(n - 2);
 }
-
-void handleClient(int clientSocket) {
-
-    // Set the client socket to non-blocking mode
-    if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) == -1) {
-        perror("Setting socket to non-blocking mode failed");
-        close(clientSocket);
-        return;
-    }
-
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    ssize_t bytesRead;
-
-    // Loop to receive and process data from the client
-    while (true) {
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-
-        if (bytesRead < 0) {
-            // Handle non-blocking operation (e.g., no data available)
-            // You can add custom logic here if needed
-        } else if (bytesRead == 0) {
-            // Client disconnected
-            std::cout << "Client disconnected" << std::endl;
-            break;
-        } else {
-            int n = std::stoi(buffer);
-            int fibo = fibonacci(n);
-            std::string nthFibo = std::to_string(fibo) + "~\n";
-            // Process and respond to the received data
-            // Example: send back the received data
-            send(clientSocket, nthFibo.c_str(), nthFibo.length(), 0);
-        }
-
-        // Clear the buffer for the next iteration
-        memset(buffer, 0, sizeof(buffer));
-    }
-
-
-
-    close(clientSocket);
-}
-
-
-
-
-
 
 int main() {
-    // Create a socket
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    //af_inet = address family (ipv4)
-    //sock_stream = socket type (tcp)
-    //0 = protocol (default)
-    
-    //if socket doesn't get created, program exits
+    int serverSocket, clientSockets[MAX_CLIENTS];
+    struct sockaddr_in serverAddr, clientAddr;
+    socklen_t clientAddrLen = sizeof(clientAddr);
+    fd_set readfds;
+
+    // Initialize client sockets to -1 (unused)
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
+        clientSockets[i] = -1;
+    }
+
+    // Create socket
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
         perror("Socket creation failed");
         return 1;
     }
 
-    // Bind the socket to an IP address and port
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(8080);  // Replace with your desired port
-    serverAddr.sin_addr.s_addr = INADDR_ANY; // All available network interfaces
+    // Make the server socket non-blocking
+    fcntl(serverSocket, F_SETFL, O_NONBLOCK);
 
-    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
+    // Initialize server address
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverAddr.sin_port = htons(PORT);
+
+    // Bind socket to address
+    if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
         perror("Binding failed");
         return 1;
     }
 
     // Listen for incoming connections
-    if (listen(serverSocket, 5) == -1) {  // 5 is the maximum number of pending connections
-        perror("Listening failed");
+    if (listen(serverSocket, MAX_CLIENTS) == -1) {
+        perror("Listen failed");
         return 1;
     }
 
-    std::cout << "Server listening on port 8080..." << std::endl;
+    std::cout << "Server listening on port " << PORT << std::endl;
 
-    // store new client in a thread
-    std::vector<std::thread> clientThreads;
-
-
-
-    // Communication with the client
     while (true) {
-        
-        // Accept incoming connections
-        struct sockaddr_in clientAddr;
-        socklen_t clientAddrLen = sizeof(clientAddr);
-        int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
-        if (clientSocket == -1) {
-            perror("Failed to accept connection!");
-            return 1;
+        FD_ZERO(&readfds);
+        FD_SET(serverSocket, &readfds);
+
+        // Add client sockets to the set
+        int maxfd = serverSocket;
+        for (int i = 0; i < MAX_CLIENTS; ++i) {
+            if (clientSockets[i] != -1) {
+                FD_SET(clientSockets[i], &readfds);
+                if (clientSockets[i] > maxfd) {
+                    maxfd = clientSockets[i];
+                }
+            }
         }
 
-        std::cout << "Client connected" << std::endl;
+        // Wait for activity on sockets
+        select(maxfd + 1, &readfds, NULL, NULL, NULL);
 
-        clientThreads.emplace_back(handleClient, clientSocket);
+        // Check for incoming connection
+        if (FD_ISSET(serverSocket, &readfds)) {
+            int clientSocket = accept(serverSocket, (struct sockaddr*) &clientAddr, &clientAddrLen);
 
+            // Make the client socket non-blocking
+            if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) == -1) {
+		perror("Setting socket to non-blocking mode failed");
+		close(clientSocket);
+		return 1;
+	    }
+
+            // Add client socket to the list
+            for (int i = 0; i < MAX_CLIENTS; ++i) {
+                if (clientSockets[i] == -1) {
+                    clientSockets[i] = clientSocket;
+                    std::cout << "Client connected." << std::endl;
+                    break;
+                }
+            }
+        }
+
+        // Handle data from clients
+        for (int i = 0; i < MAX_CLIENTS; ++i) {
+            if (clientSockets[i] != -1 && FD_ISSET(clientSockets[i], &readfds)) {
+                char buffer[1024];
+                memset(buffer, 0, sizeof(buffer));
+
+                int bytesRead = recv(clientSockets[i], buffer, sizeof(buffer), 0);
+
+                if (bytesRead <= 0) {
+                    // Client disconnected
+                    close(clientSockets[i]);
+                    std::cout << "Client disconnected." << std::endl;
+                    clientSockets[i] = -1;
+                } else {
+                    // Calculate Fibonacci and send the result back as a string
+                    int n = std::atoi(buffer);
+                    int result = fibonacci(n);
+                    std::string resultStr = std::to_string(result) + "~\n";
+                    send(clientSockets[i], resultStr.c_str(), resultStr.size(), 0);
+                }
+            }
+        }
     }
 
-    // Close sockets
+    // Close server socket (this part will never be reached in this example)
     close(serverSocket);
 
     return 0;
