@@ -41,7 +41,7 @@ int main() {
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     serverAddr.sin_port = htons(PORT);
 
-    // Bind socket to address
+    // Bind socket to network address (IP + Port)
     if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
         perror("Binding failed");
         return 1;
