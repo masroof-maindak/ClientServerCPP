@@ -38,9 +38,9 @@ int main() {
 
     // Initialize server address
     memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_family = AF_INET; //IPV4
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serverAddr.sin_port = htons(PORT);
+    serverAddr.sin_port = htons(PORT); //Port 8080
 
     // Bind socket to network address (IP + Port)
     if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
@@ -87,7 +87,7 @@ int main() {
         select(maxfd + 1, &readfds, NULL, NULL, NULL);
 
         // Check for incoming connection on SERVER SOCKET
-	// if present, it would've been added to read fds in the for loop above
+	      // if present, it would've been added to read fds in the for loop above
         if (FD_ISSET(serverSocket, &readfds)) {
 	
 	    //accept it in clientSocket
@@ -95,10 +95,10 @@ int main() {
 
             // Make the client socket non-blocking
             if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) == -1) {
-		perror("Setting socket to non-blocking mode failed");
-		close(clientSocket);
-		return 1;
-	    }
+		            perror("Setting socket to non-blocking mode failed");
+		            close(clientSocket);
+		            return 1;
+	          }
 
             // Add client socket to first non-empty spot in the array
             for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -113,24 +113,24 @@ int main() {
         // Handle data from clients
         for (int i = 0; i < MAX_CLIENTS; ++i) {
 
-	    // Check of incoming connection on CLIENT SOCKET
+	          // Check of incoming connection on CLIENT SOCKET
             if (clientSockets[i] != -1 && FD_ISSET(clientSockets[i], &readfds)) {
-		
-		//make char array
+
+		            //make char array
                 char buffer[1024];
 
-		//sets all values in array to 0
+		            //sets all values in array to 0
                 memset(buffer, 0, sizeof(buffer));
 
-		//in clientSockets[i], recv data (of max size `sizeof(buffer)`,
-		//store it in buffer, and there are no special flags (0)
+		            //in clientSockets[i], recv data (of max size `sizeof(buffer)`,
+		            //store it in buffer, and there are no special flags (0)
                 int bytesRead = recv(clientSockets[i], buffer, sizeof(buffer), 0);
 
                 if (bytesRead <= 0) {
                     // Client disconnected
                     close(clientSockets[i]);
                     std::cout << "Client disconnected." << std::endl;
-		    //set value in array as null
+		                //set value in array as null
                     clientSockets[i] = -1;
 
                 } else {
