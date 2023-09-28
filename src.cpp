@@ -59,25 +59,25 @@ int main() {
     while (true) {
         FD_ZERO(&readfds);
 
-	//adds server socket to readfds
+        //adds server socket to readfds
         FD_SET(serverSocket, &readfds);
 
         // Add client sockets to the file descriptor set
         int maxfd = serverSocket;
         for (int i = 0; i < MAX_CLIENTS; ++i) {
 
-	    //if clientSocket[i] is in use
+            //if clientSocket[i] is in use
             if (clientSockets[i] != -1) {
 
-		//add client socket to readfds
-		//and make it so that 'select' will monitor this socket for incoming data
+                //add client socket to readfds
+                //and make it so that 'select' will monitor this socket for incoming data
                 FD_SET(clientSockets[i], &readfds);
 
-		//if new clientSocket value is higher
+                //if new clientSocket value is higher
                 if (clientSockets[i] > maxfd) {
 
-		    //update maxfd so 'select' checks all relevant client sockets
-		    //up to the highest file descriptor number
+                    //update maxfd so 'select' checks all relevant client sockets
+                    //up to the highest file descriptor number
                     maxfd = clientSockets[i];
                 }
             }
@@ -87,7 +87,7 @@ int main() {
         select(maxfd + 1, &readfds, NULL, NULL, NULL);
 
         // Check for incoming connection on SERVER SOCKET
-	      // if present, it would've been added to read fds in the for loop above
+        // if present, it would've been added to read fds in the for loop above
         if (FD_ISSET(serverSocket, &readfds)) {
 	
 	    //accept it in clientSocket
@@ -113,24 +113,24 @@ int main() {
         // Handle data from clients
         for (int i = 0; i < MAX_CLIENTS; ++i) {
 
-	          // Check of incoming connection on CLIENT SOCKET
+            // Check of incoming connection on CLIENT SOCKET
             if (clientSockets[i] != -1 && FD_ISSET(clientSockets[i], &readfds)) {
 
-		            //make char array
+                //make char array
                 char buffer[1024];
 
-		            //sets all values in array to 0
+                //sets all values in array to 0
                 memset(buffer, 0, sizeof(buffer));
 
-		            //in clientSockets[i], recv data (of max size `sizeof(buffer)`,
-		            //store it in buffer, and there are no special flags (0)
+                //in clientSockets[i], recv data (of max size `sizeof(buffer)`,
+                //store it in buffer, and there are no special flags (0)
                 int bytesRead = recv(clientSockets[i], buffer, sizeof(buffer), 0);
 
                 if (bytesRead <= 0) {
                     // Client disconnected
                     close(clientSockets[i]);
                     std::cout << "Client disconnected." << std::endl;
-		                //set value in array as null
+                    //set value in array as null
                     clientSockets[i] = -1;
 
                 } else {
