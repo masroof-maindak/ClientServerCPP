@@ -9,10 +9,9 @@
 const int PORT = 8080;
 const int MAX_CLIENTS = 5;
 
-int fibonacci(int n) {
-    if (n <= 0) return 0;
-    if (n == 1) return 1;
-    return fibonacci(n - 1) + fibonacci(n - 2);
+int fib(int n) {
+    if (n < 2) return 1;
+    return fib(n - 1) + fib(n - 2);
 }
 
 int main() {
@@ -134,9 +133,9 @@ int main() {
                     clientSockets[i] = -1;
 
                 } else {
-                    // Calculate Fibonacci
+                    // Calculate fib
                     int n = std::atoi(buffer);
-                    int result = fibonacci(n);
+                    int result = fib(n);
                     std::string fibo = std::to_string(result) + "~\n";
                     send(clientSockets[i], fibo.c_str(), fibo.size(), 0);
                 }
