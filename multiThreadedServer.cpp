@@ -11,7 +11,7 @@
 using namespace std;
 
 int fib(int n) {
-    if (n < 2) return 1;
+    if (n < 2) return n;
     return fib(n - 1) + fib(n - 2);
 }
 
@@ -89,9 +89,7 @@ int main() {
 
     // store new client in a thread
     std::vector<std::thread> clientThreads;
-
-
-
+    
     // Communication with the client
     while (true) {
         

@@ -10,7 +10,7 @@ const int PORT = 8080;
 const int MAX_CLIENTS = 5;
 
 int fib(int n) {
-    if (n < 2) return 1;
+    if (n < 2) return n;
     return fib(n - 1) + fib(n - 2);
 }
 
