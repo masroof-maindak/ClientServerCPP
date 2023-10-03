@@ -11,7 +11,6 @@ protected:
     int capacity;       // Total size of your queue
     int _front;         // starting index of your queue
     int _back;          //  ending index of your queue
-    
 public:
     Queue();            // initialize your attributes
     int size();         // returns current size of your queue
@@ -111,132 +110,129 @@ inline Queue<T>::~Queue()
     delete[] arr;
 }
 
-
-
 template <class T>
-class CircularQueue : public Queue
+class CircularQueue : public Queue<T> 
 {
 public:
-    void push_back(T data){
+    void push_back(T data) {
         bool backIsBehind = false;
 
         int size = 0;
-        if(_back < _front) {
-            size = _back + (capacity - _front);
+        if(this->_back < this->_front) {
+            size = this->_back + (this->capacity - this->_front);
             backIsBehind = true;
         } else { //back is ahead of front
-            size = _back - _front;
+            size = this->_back - this->_front;
         }
 
-        if(size == capacity - 1) {
+        if(size == this->capacity - 1) {
             
-            int prevCap = capacity;
-            capacity *= 2;
-            T* temp = new T[capacity];
+            int prevCap = this->capacity;
+            this->capacity *= 2;
+            T* temp = new T[this->capacity];
 
-            if(backIsBehind){
-                for(int i = _front; i < prevCap; i++) {
-                    temp[i] = arr[i];
+            if(backIsBehind) {
+                for(int i = this->_front; i < prevCap; i++) {
+                    temp[i] = this->rr[i];
                 }
-                for(int i = 0; i < _back; i++) {
-                    temp[i + prevCap] = arr[i];
+                for(int i = 0; i < this->_back; i++) {
+                    temp[i + prevCap] = this->arr[i];
                 }   
             } else {
-                for(int i = _front; i < _back; i++) {
-                    temp[i] = arr[i];
+                for(int i = this->_front; i < this->_back; i++) {
+                    temp[i] = this->arr[i];
                 }
             }
         }
         
         //back needs to always be 1 index ahead of front so that if _front hits capacity
         //it can loop back to 0
-        _back = (_back + 1) % capacity;
-        arr[_back] = data;
+        this->_back = (this->_back + 1) % this->capacity;
+        this->arr[this->_back] = data;
     }
 
     void pop_front(){
-        if(_front == _back) {
+        if(this->_front == this->_back) {
             cout << "Queue is empty\n";
             return;
-        } else if (_front == capacity - 1) {
-            _front = 0;
+        } else if (this->_front == this->capacity - 1) {
+            this->_front = 0;
             return;
         } //else
-        front++;
+        this->_front++;
     }
 
     void print(){
-        if(_front == _back) {
+        if(this->_front == this->_back) {
             cout << "Queue is empty\n";
             return;
-        } else if(_back >= _front) {
-            for(int i = _front; i < _back; i++) {
-                cout << arr[i] << " ";
+        } else if(this->_back >= this->_front) {
+            for(int i = this->_front; i < this->_back; i++) {
+                cout << this->arr[i] << " ";
             }
         } else {
-            for(int i = _front; i < capacity; i++) {
-                cout << arr[i] << " ";
+            for(int i = this->_front; i < this->capacity; i++) {
+                cout << this->arr[i] << " ";
             }
-            for(int i = 0; i < _back; i++) {
-                cout << arr[i] << " ";
+            for(int i = 0; i < this->_back; i++) {
+                cout << this->arr[i] << " ";
             }
         }
     }
-
 };
 
 template <class T>
-class Deque : public Queue
+class Deque : public Queue<T>
 {
 public:
     void push_front(T data) {
-        if(_front == 0) {
+        if(this->_front == 0) {
             cout << "Front is at first index, can't insert further.\n";
             return;
         } //else
-        arr[_front--;] = data;
+        this->arr[this->_front--] = data;
     }
 
     void pop_back() {
-        if(_back == _front) {
+        if(this->_back == this->_front) {
             cout << "Back is at first index, can't pop further.\n";
             return;
         } //else
-        back--;
+        this->back--;
     }
 };
 
 template <class T>
-class PriorityQueue : public Queue
+class PriorityQueue : public Queue<T>
 {    
 public:
     void push_back(T data) {
         //filthy bruteforce
         //too tired to do anything else right now to be honest
-        if(size() == capacity) {
-            capacity *= 2;
-            int width = size();
+        if(this->size() == this->capacity) {
+            this->capacity *= 2;
+            int width = this->size();
 
-            T* temp = new T[capacity];
+            T* temp = new T[this->capacity];
             for(int i = 0; i < width; i++) {
-                temp[i] = arr[i + _front];
+                temp[i] = this->arr[i + this->_front];
             }
-            delete[] arr;
-            arr = temp;
+            delete[] this->arr;
+            this->arr = temp;
 
-            _front = 0;
-            _back = width;
+            this->_front = 0;
+            this->_back = width;
         }
 
-        arr[_back++] = data;
+        this->arr[this->_back++] = data;
 
-        if(_back == 1) return; //if only one element, no need to sort
+        if(this->_back == 1) return; //if only one element, no need to sort
 
-        int insertionIndex = back - 1;
-        while(arr[insertionIndex] > arr[insertionIndex - 1] and insertionIndex > _front) {
-            T temp = arr[insertionIndex];
-            arr[insertionIndex] = arr[insertionIndex - 1];
-            arr[insertionIndex - 1] = temp;
+        int insertionIndex = this->_back - 1;
+        while(this->arr[insertionIndex] > this->arr[insertionIndex - 1] and insertionIndex > this->_front) {
+            T temp = this->arr[insertionIndex];
+            this->arr[insertionIndex] = this->arr[insertionIndex - 1];
+            this->arr[insertionIndex - 1] = temp;
             insertionIndex--;
         }
     }
