@@ -5,9 +5,9 @@
 #include <netinet/in.h>
 #include <fcntl.h>       //non-blocking 
 #include <pthread.h>     // for pthread
+#include <chrono>
+#include <ctime>
 #include "Queue/queue.h"
-
-using namespace std;
 
 int fib(int n) {
     if (n < 2) return n;
@@ -15,6 +15,7 @@ int fib(int n) {
 }
 
 void* handleClient(void* arg) {
+    //cast arg to int and dereference it
     int clientSocket = *((int*)arg);
     free(arg);
 
@@ -97,7 +98,9 @@ int main() {
             return 1;
         }
 
-        std::cout << "Client connected" << std::endl;
+        auto now = std::chrono::system_clock::now(); 
+        std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
+        std::cout << "Client connected at " << std::ctime(&timeNow) << std::endl;
 
         pthread_t thread;
         if (pthread_create(&thread, NULL, handleClient, (void*)clientSocket) != 0) {
