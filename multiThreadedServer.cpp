@@ -14,147 +14,62 @@
 #include <ctime>
 #include <chrono>
 
-void receiveFile(int clientSocket, const char* filePath, off_t fileSize) {
-    int fileDescriptor = open(filePath, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fileDescriptor == -1) {
-        perror("Failed to open file for writing");
-        return;
-    }
+// Function to handle each client
+void* handleClient(void* clientSocketPtr) {
+    int clientSocket = *((int*)clientSocketPtr);
+    free(clientSocketPtr); // Free the memory allocated for the client socket pointer
 
     char buffer[1024];
-    ssize_t bytesRead;
-    off_t bytesReceived = 0;
+    std::string receivedFileName;
+    std::ofstream outputFile;
 
-    while (bytesReceived < fileSize) {
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead == -1) {
-            // Handle non-blocking operation (e.g., no data available)
-            // You can add custom logic here if needed
-            usleep(10000); // Sleep for 10 milliseconds (adjust as needed)
-            continue;
-        } else if (bytesRead == 0) {
-            // Client disconnected prematurely
-            std::cerr << "Client disconnected prematurely" << std::endl;
-            close(fileDescriptor);
-            return;
-        }
-
-        if (write(fileDescriptor, buffer, bytesRead) == -1) {
-            perror("Failed to write to file");
-            close(fileDescriptor);
-            return;
-        }
-
-        bytesReceived += bytesRead;
-    }
-
-    close(fileDescriptor);
-}
-
-void* handleClient(void* arg) {
-    int clientSocket = *((int*)arg);
-    free(arg);
-
-    // Set the client socket to non-blocking mode
-    if (fcntl(clientSocket, F_SETFL, O_NONBLOCK) == -1) {
-        perror("Setting socket to non-blocking mode failed");
+    // Receive the filename from the client
+    ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        perror("Error receiving filename");
         close(clientSocket);
         pthread_exit(NULL);
     }
 
-    auto now = std::chrono::system_clock::now();
-    std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
-    std::cout << "Client connected at " << std::ctime(&timeNow) << std::endl;
+    // Extract the filename from the received message
+    buffer[bytesRead] = '\0'; // Null-terminate the received data
+    std::string receivedMessage(buffer);
+    size_t pos = receivedMessage.find("filename:");
+    if (pos != std::string::npos) {
+        receivedFileName = receivedMessage.substr(pos + 9); // Extract the filename
+        std::cout << "Received file name: " << receivedFileName << std::endl;
 
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    ssize_t bytesRead;
-
-    // Initialize variables for file reception
-    std::string fileName;
-    off_t fileSize = -1;
-    bool receivingFile = false;
-    int fileDescriptor = -1;
-
-    // Loop to receive and process requests from the client
-    while (true) {
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-
-        if (bytesRead < 0) {
-            // Handle non-blocking operation (e.g., no data available)
-            // You can add custom logic here if needed
-        } else if (bytesRead == 0) {
-            // Client disconnected
-            now = std::chrono::system_clock::now();
-            timeNow = std::chrono::system_clock::to_time_t(now);
-            std::cout << "Client disconnected at " << std::ctime(&timeNow) << std::endl;
-            break;
-        } else {
-            if (!receivingFile) {
-                // Check for the "filename:" field in the received data
-                std::string data(buffer, bytesRead);
-                size_t filenamePos = data.find("filename:");
-                if (filenamePos != std::string::npos) {
-                    // Extract the file name
-                    size_t filenameEnd = data.find_first_of("\n", filenamePos);
-                    if (filenameEnd != std::string::npos) {
-                        fileName = data.substr(filenamePos + 9, filenameEnd - filenamePos - 9);
-                        fileSize = bytesRead - filenameEnd - 1;
-                        receivingFile = true;
-
-                        // Open the file for writing
-                        fileDescriptor = open(fileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-                        if (fileDescriptor == -1) {
-                            perror("Failed to open file for writing");
-                            close(clientSocket);
-                            pthread_exit(NULL);
-                        }
-
-                        // Write the remaining data (file content) to the file
-                        if (write(fileDescriptor, data.c_str() + filenameEnd + 1, fileSize) == -1) {
-                            perror("Failed to write to file");
-                            close(fileDescriptor);
-                            close(clientSocket);
-                            pthread_exit(NULL);
-                        }
-
-                        // Update the remaining file size
-                        fileSize -= bytesRead - filenameEnd - 1;
-                    }
-                }
-            } else {
-                // Continue writing received data to the file
-                if (write(fileDescriptor, buffer, bytesRead) == -1) {
-                    perror("Failed to write to file");
-                    close(fileDescriptor);
-                    close(clientSocket);
-                    pthread_exit(NULL);
-                }
-
-                // Update the remaining file size
-                fileSize -= bytesRead;
-
-                // Check if the entire file has been received
-                if (fileSize <= 0) {
-                    close(fileDescriptor);
-                    receivingFile = false;
-                    fileSize = -1;
-                    fileName.clear();
-                    std::cout << "File received: " << fileName << std::endl;
-                    send(clientSocket, "File received\n", 14, 0);
-                }
-            }
+        // Open the file for writing
+        outputFile.open(receivedFileName, std::ios::out);
+        if (!outputFile.is_open()) {
+            perror("Error opening output file");
+            close(clientSocket);
+            pthread_exit(NULL);
         }
-
-        // Clear the buffer for the next iteration
-        memset(buffer, 0, sizeof(buffer));
+    } else {
+        std::cerr << "Invalid message format. Expected 'filename: <filename>'." << std::endl;
+        close(clientSocket);
+        pthread_exit(NULL);
     }
 
+    // Receive and write the file content line by line
+    while (true) {
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesRead <= 0) {
+            break; // End of file or error
+        }
+        outputFile.write(buffer, bytesRead);
+    }
+
+    // Close the output file and client socket
+    outputFile.close();
     close(clientSocket);
+
+    std::cout << "Received file '" << receivedFileName << "' successfully!" << std::endl;
+
     pthread_exit(NULL);
 }
 
-//SHOULD BE GOOD CHECK REST!
 int main() {
     // Create a socket
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);

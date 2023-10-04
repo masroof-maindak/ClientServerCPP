@@ -34,7 +34,7 @@ int main() {
     std::cout << "Enter the file path to send: ";
     std::cin.getline(filePath, sizeof(filePath));
 
-    // Open the file for reading
+    // Check if the file exists and can be opened
     std::ifstream file(filePath);
     if (!file.is_open()) {
         std::cerr << "Failed to open the file: " << filePath << std::endl;
@@ -42,26 +42,23 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    //CHECK THIS!
     // Send the file name as part of the request
     std::string fileName = "filename:" + std::string(filePath);
     if (send(clientSocket, fileName.c_str(), fileName.length(), 0) == -1) {
-        perror("Send failed");
+        perror("Sending file name failed");
+        file.close();  // Close the file before exiting
+        close(clientSocket);
         exit(EXIT_FAILURE);
     }
 
     // Send the file content line by line
     std::string line;
     while (std::getline(file, line)) {
+        line += '\n'; // Add the newline character
         if (send(clientSocket, line.c_str(), line.length(), 0) == -1) {
-            perror("Send failed");
-            exit(EXIT_FAILURE);
-        }
-
-        //CHECK THIS!
-        // Send a newline character to separate lines
-        if (send(clientSocket, "\n", 1, 0) == -1) {
-            perror("Send failed");
+            perror("Sending normal line failed");
+            file.close();  // Close the file before exiting
+            close(clientSocket);
             exit(EXIT_FAILURE);
         }
     }
@@ -75,6 +72,8 @@ int main() {
         ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
         if (bytesRead == -1) {
             perror("Receive failed");
+            file.close();  // Close the file before exiting
+            close(clientSocket);
             exit(EXIT_FAILURE);
         } else if (bytesRead == 0) {
             // Server disconnected
@@ -85,7 +84,8 @@ int main() {
         std::cout << "Server response: " << buffer << std::endl;
     }
 
-    // Close the client socket
+    // Close the file and client socket before exiting
+    file.close();
     close(clientSocket);
     return 0;
 }

@@ -1,4 +1,3 @@
-filename:file.txt
 one
 two
 three
