@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fstream>
+#include <string>
 
 int main() {
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -27,29 +29,63 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    char buffer[1024];
-    while (true) {
-        std::cout << "Enter a message: ";
-        std::cin.getline(buffer, sizeof(buffer));
-        
-        if (send(clientSocket, buffer, strlen(buffer), 0) == -1) {
+    // Prompt the user for the file path to send
+    char filePath[256];
+    std::cout << "Enter the file path to send: ";
+    std::cin.getline(filePath, sizeof(filePath));
+
+    // Open the file for reading
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open the file: " << filePath << std::endl;
+        close(clientSocket);
+        exit(EXIT_FAILURE);
+    }
+
+    //CHECK THIS!
+    // Send the file name as part of the request
+    std::string fileName = "filename:" + std::string(filePath);
+    if (send(clientSocket, fileName.c_str(), fileName.length(), 0) == -1) {
+        perror("Send failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Send the file content line by line
+    std::string line;
+    while (std::getline(file, line)) {
+        if (send(clientSocket, line.c_str(), line.length(), 0) == -1) {
             perror("Send failed");
             exit(EXIT_FAILURE);
         }
 
-        if (strcmp(buffer, "exit") == 0) {
-            break; // Exit the loop if the user types "exit"
+        //CHECK THIS!
+        // Send a newline character to separate lines
+        if (send(clientSocket, "\n", 1, 0) == -1) {
+            perror("Send failed");
+            exit(EXIT_FAILURE);
         }
+    }
 
-        memset(buffer, 0, sizeof(buffer));
-        if (recv(clientSocket, buffer, sizeof(buffer), 0) == -1) {
+    std::cout << "File sent successfully!" << std::endl;
+
+    // Communication with the server
+    char buffer[1024];
+    while (true) {
+        // Receive a response from the server
+        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesRead == -1) {
             perror("Receive failed");
             exit(EXIT_FAILURE);
+        } else if (bytesRead == 0) {
+            // Server disconnected
+            std::cout << "Server disconnected" << std::endl;
+            break;
         }
 
         std::cout << "Server response: " << buffer << std::endl;
     }
 
+    // Close the client socket
     close(clientSocket);
     return 0;
 }
