@@ -44,6 +44,7 @@ int main() {
 
     // Send the file name as part of the request
     std::string fileName = "filename:" + std::string(filePath);
+    std::cout << "Sending name: " << fileName << std::endl;
     if (send(clientSocket, fileName.c_str(), fileName.length(), 0) == -1) {
         perror("Sending file name failed");
         file.close();  // Close the file before exiting
@@ -54,9 +55,17 @@ int main() {
     // Send the file content line by line
     std::string line;
     while (std::getline(file, line)) {
-        line += '\n'; // Add the newline character
+        //send the normal line read from the server
         if (send(clientSocket, line.c_str(), line.length(), 0) == -1) {
             perror("Sending normal line failed");
+            file.close();  // Close the file before exiting
+            close(clientSocket);
+            exit(EXIT_FAILURE);
+        }
+
+        // Send a newline character to separate lines
+        if (send(clientSocket, "\n", 1, 0) == -1) {
+            perror("Sending new line char failed");
             file.close();  // Close the file before exiting
             close(clientSocket);
             exit(EXIT_FAILURE);

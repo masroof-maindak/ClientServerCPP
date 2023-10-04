@@ -5,14 +5,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <pthread.h>
+#include <pthread.h>    //threads
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <ctime>
-#include <chrono>
+#include <netinet/tcp.h> // For TCP_NODELAY (auto timeout)
+#include <fcntl.h> //non-blocking
+#include <fstream> //file stream
+#include <ctime>    // printing time to console
+#include <chrono>   // printing time to console
 
 // Function to handle each client
 void* handleClient(void* clientSocketPtr) {
@@ -52,6 +51,17 @@ void* handleClient(void* clientSocketPtr) {
         pthread_exit(NULL);
     }
 
+    // Set a receive timeout on the client socket
+    struct timeval timeout;
+    timeout.tv_sec = 10; // 10s
+    timeout.tv_usec = 0;
+
+    if (setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        perror("Setting receive timeout failed");
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
+
     // Receive and write the file content line by line
     while (true) {
         bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -59,6 +69,7 @@ void* handleClient(void* clientSocketPtr) {
             break; // End of file or error
         }
         outputFile.write(buffer, bytesRead);
+        outputFile.flush();
     }
 
     // Close the output file and client socket
@@ -75,6 +86,11 @@ int main() {
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
         perror("Socket creation failed");
+        return 1;
+    }
+    int reuse = 1;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
+        perror("setsockopt");
         return 1;
     }
     // Bind the socket to an IP address and port
