@@ -46,6 +46,7 @@ int main(int argc, char* argv[]) {
 
                     //if current pixel is black
                     if (blackDetected((int)img[pix.first][pix.second])) {
+
                         //add it to lists of checked pixels
                         CheckedPixels[pix.first][pix.second] = true;
 

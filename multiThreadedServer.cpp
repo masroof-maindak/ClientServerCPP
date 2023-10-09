@@ -45,15 +45,16 @@ void* handleClient(void* clientSocketPtr) {
             close(clientSocket);
             pthread_exit(NULL);
         }
+
     } else {
         std::cerr << "Invalid message format. Expected 'filename: <filename>'." << std::endl;
         close(clientSocket);
         pthread_exit(NULL);
     }
 
-    // Set a receive timeout on the client socket
+    //set a receive timeout on the client socket
     struct timeval timeout;
-    timeout.tv_sec = 10; // 10s
+    timeout.tv_sec = 10;
     timeout.tv_usec = 0;
 
     if (setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
@@ -119,13 +120,16 @@ int main() {
             perror("Failed to accept connection!");
             return 1;
         }
+
         pthread_t thread;
         if (pthread_create(&thread, NULL, handleClient, (void*)clientSocket) != 0) {
             perror("Thread creation failed");
             return 1;
         }
+
         pthread_detach(thread); // Detach the thread to allow it to clean up automatically
     }
+
     // Close sockets
     close(serverSocket);
     return 0;
