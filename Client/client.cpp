@@ -5,10 +5,21 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <fstream>
 #include <string>
+#include "image/Image.h"
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cout << "Usage: " << argv[0] << " <image_file>" << std::endl;
+        return 1;
+    }
+
+    // Read the image file name from the command line argument
+    const char* imageFileName = argv[1];
+
+    // Load the original image using your Image class
+    Image originalImage(imageFileName);
+
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (clientSocket == -1) {
         perror("Socket creation failed");
@@ -29,72 +40,42 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Prompt the user for the file path to send
-    char filePath[256];
-    std::cout << "Enter the file path to send: ";
-    std::cin.getline(filePath, sizeof(filePath));
-
-    // Check if the file exists and can be opened
-    std::ifstream file(filePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open the file: " << filePath << std::endl;
+    // Send the original image dimensions (rows and columns) to the server
+    int numRows = originalImage.get_rows();
+    int numCols = originalImage.get_cols();
+    if (send(clientSocket, &numRows, sizeof(numRows), 0) == -1) {
+        perror("Sending original image rows failed");
         close(clientSocket);
         exit(EXIT_FAILURE);
     }
 
-    // Send the file name as part of the request
-    std::string fileName = "filename:" + std::string(filePath);
-    std::cout << "Sending name: " << fileName << std::endl;
-    if (send(clientSocket, fileName.c_str(), fileName.length(), 0) == -1) {
-        perror("Sending file name failed");
-        file.close();  // Close the file before exiting
+    if (send(clientSocket, &numCols, sizeof(numCols), 0) == -1) {
+        perror("Sending original image columns failed");
         close(clientSocket);
         exit(EXIT_FAILURE);
     }
 
-    // Send the file content line by line
-    std::string line;
-    while (std::getline(file, line)) {
-        //send the normal line read from the server
-        if (send(clientSocket, line.c_str(), line.length(), 0) == -1) {
-            perror("Sending normal line failed");
-            file.close();  // Close the file before exiting
-            close(clientSocket);
-            exit(EXIT_FAILURE);
-        }
-
-        // Send a newline character to separate lines
-        if (send(clientSocket, "\n", 1, 0) == -1) {
-            perror("Sending new line char failed");
-            file.close();  // Close the file before exiting
-            close(clientSocket);
-            exit(EXIT_FAILURE);
-        }
+    // Send the original image data as binary
+    ssize_t imageSize = numRows * numCols * sizeof(uint8_t);
+    if (send(clientSocket, originalImage[0], imageSize, 0) == -1) {
+        perror("Sending original image data failed");
+        close(clientSocket);
+        exit(EXIT_FAILURE);
     }
 
-    std::cout << "File sent successfully!" << std::endl;
-
-    // Communication with the server
-    char buffer[1024];
-    while (true) {
-        // Receive a response from the server
-        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead == -1) {
-            perror("Receive failed");
-            file.close();  // Close the file before exiting
-            close(clientSocket);
-            exit(EXIT_FAILURE);
-        } else if (bytesRead == 0) {
-            // Server disconnected
-            std::cout << "Server disconnected" << std::endl;
-            break;
-        }
-
-        std::cout << "Server response: " << buffer << std::endl;
+    // Receive the required information from the server
+    int numOfCharacters;
+    ssize_t bytesRead = recv(clientSocket, &numOfCharacters, sizeof(numOfCharacters), 0);
+    if (bytesRead != sizeof(numOfCharacters)) {
+        perror("Error receiving character count");
+        close(clientSocket);
+        exit(EXIT_FAILURE);
     }
 
-    // Close the file and client socket before exiting
-    file.close();
+    std::cout << "Number of characters: " << numOfCharacters << std::endl;
+
+    // Close the client socket
     close(clientSocket);
+
     return 0;
 }

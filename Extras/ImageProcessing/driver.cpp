@@ -5,7 +5,7 @@
 
 using namespace std;
 
-bool blackDetected(int pixel) { return pixel < 60; }
+bool blackDetected(int pixel) { return pixel < 180; }
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {

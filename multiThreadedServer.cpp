@@ -3,81 +3,77 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <vector>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>    //threads
 #include <sys/stat.h>
-#include <netinet/tcp.h> // For TCP_NODELAY (auto timeout)
-#include <fcntl.h> //non-blocking
-#include <fstream> //file stream
-#include <ctime>    // printing time to console
-#include <chrono>   // printing time to console
+#include "serverImageProcessing.h"
 
-// Function to handle each client
+//function to handle each client
 void* handleClient(void* clientSocketPtr) {
     int clientSocket = *((int*)clientSocketPtr);
-    free(clientSocketPtr); // Free the memory allocated for the client socket pointer
+    free(clientSocketPtr);
 
-    char buffer[1024];
-    std::string receivedFileName;
-    std::ofstream outputFile;
-
-    // Receive the filename from the client
-    ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    if (bytesRead <= 0) {
-        perror("Error receiving filename");
+    //receive image dimensions (rows and columns)
+    int numRows, numCols;
+    ssize_t bytesRead = recv(clientSocket, &numRows, sizeof(numRows), 0);
+    if (bytesRead != sizeof(numRows)) {
+        perror("Error receiving image rows");
         close(clientSocket);
         pthread_exit(NULL);
     }
 
-    // Extract the filename from the received message
-    buffer[bytesRead] = '\0'; // Null-terminate the received data
-    std::string receivedMessage(buffer);
-    size_t pos = receivedMessage.find("filename:");
-    if (pos != std::string::npos) {
-        receivedFileName = receivedMessage.substr(pos + 9); // Extract the filename
-        std::cout << "Received file name: " << receivedFileName << std::endl;
+    bytesRead = recv(clientSocket, &numCols, sizeof(numCols), 0);
+    if (bytesRead != sizeof(numCols)) {
+        perror("Error receiving image columns");
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
 
-        // Open the file for writing
-        outputFile.open(receivedFileName, std::ios::out);
-        if (!outputFile.is_open()) {
-            perror("Error opening output file");
+    // Receive the image data as binary
+    ssize_t imageSize = numRows * numCols * sizeof(uint8_t);
+    uint8_t* imageData = new uint8_t[imageSize];
+    uint8_t* imageDataPtr = imageData;
+
+    while (imageSize > 0) {
+        bytesRead = recv(clientSocket, imageDataPtr, imageSize, 0);
+        if (bytesRead <= 0) {
+            perror("Error receiving image data");
             close(clientSocket);
+            delete[] imageData;
             pthread_exit(NULL);
         }
-
-    } else {
-        std::cerr << "Invalid message format. Expected 'filename: <filename>'." << std::endl;
-        close(clientSocket);
-        pthread_exit(NULL);
+        imageSize -= bytesRead;
+        imageDataPtr += bytesRead;
     }
 
-    //set a receive timeout on the client socket
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
-
-    if (setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-        perror("Setting receive timeout failed");
-        close(clientSocket);
-        pthread_exit(NULL);
-    }
-
-    // Receive and write the file content line by line
-    while (true) {
-        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-        if (bytesRead <= 0) {
-            break; // End of file or error
+    // Create a 2D matrix to store the image data
+    std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
+    
+    // Load the received image data into the matrix
+    for (int i = 0; i < numRows; ++i) {
+        for (int j = 0; j < numCols; ++j) {
+            receivedImage[i][j] = *imageData;
+            ++imageData;
         }
-        outputFile.write(buffer, bytesRead);
-        outputFile.flush();
     }
 
-    // Close the output file and client socket
-    outputFile.close();
+    int charCount = charCounter(receivedImage, numRows, numCols);
+
+    // Send the updated matrix dimensions (rows and columns) to the client
+    if (send(clientSocket, &charCount, sizeof(charCount), 0) == -1) {
+        perror("Sending char count failed");
+        close(clientSocket);
+        pthread_exit(NULL);
+    }
+    
+    std::cout << "Successfully sent character count." << std::endl;
+
+    // Close the client socket
     close(clientSocket);
 
-    std::cout << "Received file '" << receivedFileName << "' successfully!" << std::endl;
+    std::cout << "Closing client socket." << std::endl;
 
     pthread_exit(NULL);
 }
