@@ -20,15 +20,13 @@ void* handleClient(void* clientSocketPtr) {
     ssize_t bytesRead = recv(clientSocket, &numRows, sizeof(numRows), 0);
     if (bytesRead != sizeof(numRows)) {
         perror("Error receiving image rows");
-        close(clientSocket);
-        pthread_exit(NULL);
+        close(clientSocket); pthread_exit(NULL);
     }
 
     bytesRead = recv(clientSocket, &numCols, sizeof(numCols), 0);
     if (bytesRead != sizeof(numCols)) {
         perror("Error receiving image columns");
-        close(clientSocket);
-        pthread_exit(NULL);
+        close(clientSocket); pthread_exit(NULL);
     }
 
     // Receive the image data as binary
@@ -64,8 +62,7 @@ void* handleClient(void* clientSocketPtr) {
     // Send the updated matrix dimensions (rows and columns) to the client
     if (send(clientSocket, &charCount, sizeof(charCount), 0) == -1) {
         perror("Sending char count failed");
-        close(clientSocket);
-        pthread_exit(NULL);
+        close(clientSocket); pthread_exit(NULL);
     }
     
     std::cout << "Successfully sent character count." << std::endl;
@@ -82,29 +79,30 @@ int main() {
     // Create a socket
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
-        perror("Socket creation failed");
-        return 1;
+        perror("Socket creation failed"); return 1;
     }
+
     int reuse = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
-        perror("setsockopt");
-        return 1;
+        perror("setsockopt"); return 1;
     }
+
     // Bind the socket to an IP address and port
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(8080);  // Replace with your desired port
+    serverAddr.sin_port = htons(8080);
     serverAddr.sin_addr.s_addr = INADDR_ANY;
     if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("Binding failed");
-        return 1;
+        perror("Binding failed"); return 1;
     }
+
     // Listen for incoming connections
     if (listen(serverSocket, 5) == -1) {
-        perror("Listening failed");
-        return 1;
+        perror("Listening failed"); return 1;
     }
+
     std::cout << "Server listening on port 8080..." << std::endl;
+
     // Communication with the client
     while (true) {
         // Accept incoming connections
@@ -112,15 +110,14 @@ int main() {
         socklen_t clientAddrLen = sizeof(clientAddr);
         int* clientSocket = (int*)malloc(sizeof(int)); // Allocate memory for the socket
         *clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+
         if (*clientSocket == -1) {
-            perror("Failed to accept connection!");
-            return 1;
+            perror("Failed to accept connection!"); return 1;
         }
 
         pthread_t thread;
         if (pthread_create(&thread, NULL, handleClient, (void*)clientSocket) != 0) {
-            perror("Thread creation failed");
-            return 1;
+            perror("Thread creation failed"); return 1;
         }
 
         pthread_detach(thread); // Detach the thread to allow it to clean up automatically
