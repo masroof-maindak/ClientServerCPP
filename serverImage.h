@@ -10,7 +10,7 @@ using namespace std;
 //todo?: Otsu's Algorithm
 bool blackDetected(int pixel) { return pixel < 180; }
 
-int charCounter(vector<vector<uint8_t>> img, int rows, int cols) {
+int charCounter(vector<vector<uint8_t>>& img, int rows, int cols) {
     int bodiesOfBlack = 0;
 
     //store pixels that have already been checked
