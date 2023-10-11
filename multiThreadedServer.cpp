@@ -51,21 +51,16 @@ void* receiveImage(void* clientSocketPtr) {
         close(clientSocket); pthread_exit(NULL);
     }
 
-    //receive the image data as binary
-    ssize_t imageSize = numRows * numCols * sizeof(uint8_t);
-    uint8_t* imageData = new uint8_t[imageSize];
-    uint8_t* imageDataPtr = imageData;
+    //2d matrix to store image
+    std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
 
-    while (imageSize > 0) {
-        bytesRead = recv(clientSocket, imageDataPtr, imageSize, 0);
-        if (bytesRead <= 0) {
+    for (int row = 0; row < numRows; row++) {
+        bytesRead = recv(clientSocket, receivedImage[row].data(), numCols * sizeof(uint8_t), 0);
+        if (bytesRead < 1) {
             perror("Error receiving image data");
             close(clientSocket);
-            delete[] imageData;
             pthread_exit(NULL);
         }
-        imageSize -= bytesRead;
-        imageDataPtr += bytesRead;
     }
 
     //RECV() arguments:
@@ -73,17 +68,6 @@ void* receiveImage(void* clientSocketPtr) {
     //2. Pointer to a buffer variable where I'll store said data
     //3. size of buffer in bytes
     //4. int flags, 0 - none
-
-    //2d matrix to store image
-    std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
-    
-    //load the received image data into the matrix
-    for (int i = 0; i < numRows; ++i) {
-        for (int j = 0; j < numCols; ++j) {
-            receivedImage[i][j] = *imageData;
-            ++imageData;
-        }
-    }
 
     //randomly generated number to serve as identification ID
     std::random_device rd;

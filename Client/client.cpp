@@ -70,12 +70,13 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    //transfer image in bulk
-    ssize_t imageSize = numRows * numCols * sizeof(uint8_t);
-    if (send(clientSocket, originalImage[0], imageSize, 0) == -1) {
-        perror("Sending original image data failed");
-        close(clientSocket);
-        exit(EXIT_FAILURE);
+    //transfer image row by row
+    for (int i = 0; i < numRows; i++) {
+        if (send(clientSocket, originalImage[i], numCols * sizeof(uint8_t), 0) == -1) {
+            perror("Sending image row failed");
+            close(clientSocket);
+            exit(EXIT_FAILURE);
+        }
     }
 
     //recv answer from server
