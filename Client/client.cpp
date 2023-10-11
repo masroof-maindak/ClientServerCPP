@@ -9,7 +9,7 @@
 #include "image/Image.h"
 
 int main(int argc, char* argv[]) {
-    //help
+    //help message
     if (argc != 2) {
         std::cout << "Usage: " << argv[0] << " <image_file>" << std::endl;
         return 1;
@@ -59,25 +59,41 @@ int main(int argc, char* argv[]) {
     //send row number
     if (send(clientSocket, &numRows, sizeof(numRows), 0) == -1) {
         perror("Sending original image rows failed");
-        close(clientSocket);
-        exit(EXIT_FAILURE);
+        close(clientSocket); exit(EXIT_FAILURE);
     }
 
     //send column number
     if (send(clientSocket, &numCols, sizeof(numCols), 0) == -1) {
         perror("Sending original image columns failed");
-        close(clientSocket);
-        exit(EXIT_FAILURE);
+        close(clientSocket); exit(EXIT_FAILURE);
     }
 
     //transfer image row by row
-    for (int i = 0; i < numRows; i++) {
-        if (send(clientSocket, originalImage[i], numCols * sizeof(uint8_t), 0) == -1) {
+    for (int row = 0; row < numRows; row++) {
+        int intSize = sizeof(uint32_t);
+        int arraySize = numCols + intSize;
+
+        //make array to embed row id in image
+        uint8_t rowData[arraySize];
+
+        //put row id in first 4 indices
+        for(int i = 0; i < intSize; i++) {
+            rowData[i] = ((char *)&row)[i];
+        }
+
+        //copy over the rest of the elements
+        for(int i = 0; i < numCols; i++) {
+            rowData[i + intSize] = originalImage[row][i];
+        }
+
+        //send row
+        if (send(clientSocket, rowData, arraySize, 0) == -1) {
             perror("Sending image row failed");
-            close(clientSocket);
-            exit(EXIT_FAILURE);
+            close(clientSocket); exit(EXIT_FAILURE);
         }
     }
+
+    //todo: send new row only after acknowledgement byte received
 
     //recv answer from server
     int numOfCharacters;

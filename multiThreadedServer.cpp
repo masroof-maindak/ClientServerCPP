@@ -14,6 +14,8 @@
 
 #include "serverImage.h" //flood fill algo to count characters in the image
 
+#define SLEEP_TIME 400000 //0.4s
+
 //structs
 struct answer {
     int blackBodies;
@@ -54,19 +56,39 @@ void* receiveImage(void* clientSocketPtr) {
     //2d matrix to store image
     std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
 
+    //receive image row by row
     for (int row = 0; row < numRows; row++) {
-        bytesRead = recv(clientSocket, receivedImage[row].data(), numCols * sizeof(uint8_t), 0);
+        int intSize = sizeof(uint32_t);
+        int arraySize = numCols + intSize;
+
+        //make array to recieve rowID + image row
+        uint8_t rowData[arraySize];
+
+        //recieves rowID + row into rowData
+        bytesRead = recv(clientSocket, rowData, arraySize, 0);
         if (bytesRead < 1) {
             perror("Error receiving image data");
             close(clientSocket);
             pthread_exit(NULL);
+        }
+
+        //store row as uint32_t (int) pointer
+        //so fucking omega brain
+        uint32_t rowID = *reinterpret_cast<uint32_t*>(rowData);
+
+        //rowImageData now points to where image starts from
+        uint8_t* rowImageData = rowData + intSize;
+
+        //copy contents of rowImageData short[] heap array over to vector matrix
+        for(int col = 0; col < numCols; col++) {
+            receivedImage[row][col] = rowImageData[col];
         }
     }
 
     //RECV() arguments:
     //1. socket from where I want to RECEIVE data
     //2. Pointer to a buffer variable where I'll store said data
-    //3. size of buffer in bytes
+    //3. size of buffer in bytesu
     //4. int flags, 0 - none
 
     //randomly generated number to serve as identification ID
@@ -97,8 +119,9 @@ void* receiveImage(void* clientSocketPtr) {
                 //and exit the whileloop
                 break;
             }
+        } else {
+            usleep(SLEEP_TIME); 
         }
-        //sleep for some time period...?
     }
 
     //send the number of characters to the client
@@ -124,8 +147,9 @@ void* readProcessingQueue(void* arg) {
             int ans = charCounter (*tempImg.img, tempImg.rows, tempImg.cols);
             answer tempAns = {ans, tempImg.randomID};
             answerQueue.push(tempAns);
+        } else {
+            usleep(SLEEP_TIME);
         }
-        //sleep for some time...?
     }
     return NULL;
 }
@@ -167,6 +191,8 @@ void* readAnswerQueue(void* arg) {
                 answerQueue.pop();
                 std::cout << "Popped value: " << currAns << "; Client might have disconnected" << std::endl;
             }
+        } else {
+            usleep(SLEEP_TIME);
         }
     }
     return NULL;
