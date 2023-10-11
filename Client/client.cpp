@@ -9,53 +9,68 @@
 #include "image/Image.h"
 
 int main(int argc, char* argv[]) {
+    //help
     if (argc != 2) {
         std::cout << "Usage: " << argv[0] << " <image_file>" << std::endl;
         return 1;
     }
 
-    // Read the image file name from the command line argument
+    //store file name and open image
     const char* imageFileName = argv[1];
-
-    // Load the original image using your Image class
     Image originalImage(imageFileName);
 
+    //init client socket
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (clientSocket == -1) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
+    //bind it
     sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(8080); // Port 8080
+    serverAddr.sin_family = AF_INET; //ipv4
+    serverAddr.sin_port = htons(8080); //port 8080
 
-    if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) <= 0) {
+    //convert human-readable string to binary network address structure
+    if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) < 1) {
         perror("Invalid address or address not supported");
         exit(EXIT_FAILURE);
     }
 
+    //INET_PTON() arguments:
+    //1. address family (ipv4/v6)
+    //2. pointer to the ip address string you want to convert
+    //3. pointer to the locatoin where you want to store the converted binary address
+
+    //connect client to server via sockets
     if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         perror("Connection failed");
         exit(EXIT_FAILURE);
     }
 
-    // Send the original image dimensions (rows and columns) to the server
+    //CONNECT() arguments:
+    //1. socket file descriptor of client socket you want to connect
+    //2. pointer to sockaddr struct holding info. Cast exists to convert to ipv4/v6
+    //3. size of addr structure
+
     int numRows = originalImage.get_rows();
     int numCols = originalImage.get_cols();
+
+    //send row number
     if (send(clientSocket, &numRows, sizeof(numRows), 0) == -1) {
         perror("Sending original image rows failed");
         close(clientSocket);
         exit(EXIT_FAILURE);
     }
 
+    //send column number
     if (send(clientSocket, &numCols, sizeof(numCols), 0) == -1) {
         perror("Sending original image columns failed");
         close(clientSocket);
         exit(EXIT_FAILURE);
     }
 
-    // Send the original image data as binary
+    //transfer image in bulk
     ssize_t imageSize = numRows * numCols * sizeof(uint8_t);
     if (send(clientSocket, originalImage[0], imageSize, 0) == -1) {
         perror("Sending original image data failed");
@@ -63,7 +78,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Receive the required information from the server
+    //recv answer from server
     int numOfCharacters;
     ssize_t bytesRead = recv(clientSocket, &numOfCharacters, sizeof(numOfCharacters), 0);
     if (bytesRead != sizeof(numOfCharacters)) {
