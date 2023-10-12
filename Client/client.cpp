@@ -91,9 +91,19 @@ int main(int argc, char* argv[]) {
             perror("Sending image row failed");
             close(clientSocket); exit(EXIT_FAILURE);
         }
+
+        //acknowledgement byte
+        while(true) {
+            int acknowledgement;
+            if (recv(clientSocket, &acknowledgement, intSize, 0)) == -1) {
+                perror("Receiving acknowledgement failed.");
+                close(clientSocket); pthread_exit(NULL);
+            }
+            if(acknowledgement == 1) {break;} 
+            else {usleep(40000);}
+        }
     }
 
-    //todo: send new row only after acknowledgement byte received
 
     //recv answer from server
     int numOfCharacters;

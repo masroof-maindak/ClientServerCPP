@@ -10,7 +10,7 @@
 #include <random>        //thread image ID generation
 #include <vector>        //store image
 #include <queue>         //processing/answer queues
-#include <chrono>
+#include <chrono>        //answer queue pops un-picked-up answer
 
 #include "serverImage.h" //flood fill algo to count characters in the image
 
@@ -73,7 +73,7 @@ void* receiveImage(void* clientSocketPtr) {
         }
 
         //store row as uint32_t (int) pointer
-        //so fucking omega brain
+        //reinterpret cast force-converts it
         uint32_t rowID = *reinterpret_cast<uint32_t*>(rowData);
 
         //rowImageData now points to where image starts from
@@ -88,7 +88,7 @@ void* receiveImage(void* clientSocketPtr) {
     //RECV() arguments:
     //1. socket from where I want to RECEIVE data
     //2. Pointer to a buffer variable where I'll store said data
-    //3. size of buffer in bytesu
+    //3. size of buffer in bytes
     //4. int flags, 0 - none
 
     //randomly generated number to serve as identification ID
