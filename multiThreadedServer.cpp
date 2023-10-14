@@ -12,7 +12,7 @@
 #include <queue>         //processing/answer queues
 #include <chrono>        //answer queue pops un-picked-up answer
 
-#include "serverImage.h" //flood fill algo to count characters in the image
+#include "imageProcess.h" //flood fill algo to count characters in the image
 
 #define SLEEP_TIME 400000 //0.4s
 
