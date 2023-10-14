@@ -83,6 +83,8 @@ void* receiveImage(void* clientSocketPtr) {
         for(int col = 0; col < numCols; col++) {
             receivedImage[row][col] = rowImageData[col];
         }
+
+        std::cout << "Received row: " << rowID << std::endl;
     }
 
     //RECV() arguments:
@@ -240,7 +242,7 @@ int main() {
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;    //sin = socket internet
                     					//yes, it's fucking stupid.
-    serverAddr.sin_port = htons(8080);  //port 8080 basically - htons = host TO network short (like the data type)
+    serverAddr.sin_port = htons(9989);  //port 9989 basically - htons = host TO network short (like the data type)
     serverAddr.sin_addr.s_addr = INADDR_ANY; //// All available network interfaces - e.g Wifi/Ethernet/Bluetooth, etc.
     // sin_addr - the field used to specify the IP address associated with the socket. 
     // Only sort of a wrapper for the s_addr value in this case. 
@@ -263,7 +265,7 @@ int main() {
     //2. accept, at most, this value, before refusing all further connections
 
     //public service announcement
-    std::cout << "Server listening on port 8080..." << std::endl;
+    std::cout << "Server listening on port 9989..." << std::endl;
 
     //connecting with client(s) (infinitely)
     while (true) {

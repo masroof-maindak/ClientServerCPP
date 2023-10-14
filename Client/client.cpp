@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     //bind it
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET; //ipv4
-    serverAddr.sin_port = htons(8080); //port 8080
+    serverAddr.sin_port = htons(9988); //port 9988
 
     //convert human-readable string to binary network address structure
     if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) < 1) {
@@ -95,7 +95,8 @@ int main(int argc, char* argv[]) {
         //acknowledgement byte
         while(true) {
             int acknowledgement;
-            if (recv(clientSocket, &acknowledgement, intSize, 0)) == -1) {
+            ssize_t ackno = recv(clientSocket, &acknowledgement, intSize, 0);
+            if (ackno < 1) {
                 perror("Receiving acknowledgement failed.");
                 close(clientSocket); pthread_exit(NULL);
             }
