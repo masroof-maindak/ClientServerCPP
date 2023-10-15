@@ -6,15 +6,17 @@ using namespace std;
 
 Heap::Heap(){
     freeSegments.push_back(make_pair(HEAP_SIZE, arr));
+    freeMemory.insert(make_pair(HEAP_SIZE, arr));
 }
 
-void* Heap::ITUN(size_t _size) {   
+void* Heap::ITUN (size_t _size) {   
 
     //loop through free info
-    for(int i = 0; i < freeSegments.size(); i++){
+    for(int i = 0; i < freeSegments.size(); i++) {
 
         //if size of incoming memory is smaller than or equal to size of free segment + 4 bytes to store size
-        if(freeSegments[i].first >= _size + 4){
+        if(freeSegments[i].first >= _size + 4) {
+
             //store that address pointer
             int* freeAddress = (int*)freeSegments[i].second;
 
@@ -28,7 +30,7 @@ void* Heap::ITUN(size_t _size) {
             //return pointer to segment
             // cout << "DEBUG - Memory Returned at address: " << freeAddress + 1 << endl;
             return freeAddress + 1;
-            //+ 4 to account for the byte used to hold the size of that segment
+            //+ 1 to account for the byte used to hold the size of that segment
         }
 
     }
@@ -66,6 +68,7 @@ void Heap::lengthenVector(void* ptr) {
     size = static_cast<int*>(ptr) - 1;
     size_t umm = *size;
     freeSegments.push_back(make_pair(umm + 4, static_cast<char*>(ptr)));
+    freeMemory.insert(make_pair(umm + 4, static_cast<char*>(ptr)));
 }
 
 int Heap::getFreeSize() {   

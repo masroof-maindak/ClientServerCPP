@@ -11,17 +11,16 @@ class Heap
 {
 private:
     char arr[HEAP_SIZE];
-    vector <pair<size_t, char*>> freeSegments;
+    vector <pair<int, char*>> freeSegments;
     minHeap <pair<int, char*>> freeMemory;
 
     void shortenVector(int index, size_t _size);
     void lengthenVector(void*);
-
 public:
     Heap();
-    int getFreeSize();
-    void* ITUN(size_t);
-    void ITUD(void*);
+    void* ITUN (size_t);
+    void ITUD (void*);
+    int getFreeSize ();
 };
 
 #endif
