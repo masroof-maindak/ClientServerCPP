@@ -34,7 +34,6 @@ void* Heap::ITUN(size_t _size) {
 	return nullptr;
 }
 
-// TODO: ACCOMODATE 4 BYTES FOR SIZE OF SEGMENT
 void Heap::shortenVector(int index, size_t _size) {
 	// if size - _size == 0, delete that 'block' from the vector of free
 	// segments.

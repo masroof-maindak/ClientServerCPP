@@ -51,80 +51,23 @@ public:
     ~minHeap() {delete[] arr;} // deallocate the memory
 };
 
-//mac mil
-
-//generate heap from array w/ heapify
-template <class T>
-inline minHeap<T>::minHeap(T* _arr, int _capacity) {
-    _size = 0;
-    capacity = _capacity;
-    arr = new T[capacity];
-
-    heapify(_arr, _capacity);
-}
-
-template<class T>
-inline void minHeap<T>::heapify(T* _arr, int _capacity) {
-    for (int i = 0; i < _capacity; i++, _size++) {
-        arr[_size] = _arr[i];
-        heapifyUp(_size);
-    }
-}
-
-//auxiliary heapifys
-template<class T>
-inline void minHeap<T>::heapifyUp(int node) {
-    //smaller node should be at the top
-    int pNode = getParent(node);
-
-    if(pNode == -1) {
-        std::cerr << "Out of bounds access while heapifying up." << std::endl;
-        return;
-    }
-
-    //if child is smaller, then swap, and keep swapping
-    if (arr[node] < arr[pNode]) {
-        std::swap(arr[node], arr[pNode]);
-        heapifyUp(pNode);
-    }
-}
-
-template<class T>
-inline void minHeap<T>::heapifyDown(int node) {
-    //larger node should be at the bottom
-    int lNode = getLeftChild(node);
-    int rNode = getRightChild(node);
-    
-    if(lNode == -1 or rNode == -1) {
-        std::cerr << "Out of bounds access while heapifying down." << std::endl;
-        return;
-    }
-
-    int minValNode = arr[lNode] < arr[rNode] ? lNode : rNode;
-
-    //if child is smaller, then swap, and keep swapping
-    if(arr[minValNode] < arr[node]) {
-        std::swap(arr[minValNode], arr[node]);
-        heapifyDown(minValNode);
-    }
-}
 
 //access relatives
 template<class T>
 inline int minHeap<T>::getLeftChild(int parent) {
-    int ans = (parent*2) + 1;
+    int ans = (parent * 2) + 1;
     return (ans > _size) ? -1 : ans;
 }
 
 template<class T>
 inline int minHeap<T>::getRightChild(int parent) {
-    int ans = (parent*2) + 2;
+    int ans = (parent * 2) + 2;
     return (ans > _size) ? -1 : ans;
 }
 
 template <class T>
 inline int minHeap<T>::getParent(int child) {
-    int ans = (child - 1) * 2;
+    int ans = (child - 1) / 2;
     return (ans < 0) ? -1 : ans;
 }
 
