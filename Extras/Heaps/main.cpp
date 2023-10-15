@@ -3,6 +3,7 @@
 #include "minHeap.h"
 
 int main () {
+    minHeap<int> h1;
 
     return 0;
 }
