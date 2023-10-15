@@ -45,17 +45,105 @@ public:
     void print(); // print the heap in whatever order you like
     // by order it means, either preorder, inorder, postorder
     // or in ascending/descending order
+
+    static void sort(T* _arr, int _capacity);
+    // sort the array in ascending order using heap sort
+
     ~maxHeap() {delete[] arr;} // deallocate the memory
 };
 
 template<class T>
-inline void maxHeap<T>::print() {
-    std::cout << "Size: " << _size << std::endl;
-    std::cout << "Capa: " << capacity << std::endl;
+inline void maxHeap<T>::sort(T * _arr, int _capacity) {
+    //call constructor on array
+    maxHeap<T> heap(_arr, _capacity);
 
+    //extract root
+    for (int i = _capacity - 1; i >= 0; i--)
+        _arr[i] = heap.extractMax();
+}
+
+template<class T>
+inline void maxHeap<T>::print() {
     for(int i = 0; i < _size; i++)
         std::cout << arr[i] << " ";
     std::cout << std::endl;
+}
+
+template<class T>
+inline void maxHeap<T>::erase(T _key) {
+    //if first element
+    if(arr[0] == _key) {
+        T junk = extractMax();
+        return;
+    }
+
+    //if last element
+    if(arr[_size - 1] == _key) {
+        _size--;
+        return;
+    }
+
+    //if in between
+    int badNode = -1;
+    for(int i = 1; i < _size - 1; i++) {
+        if(_key == arr[i]){
+            badNode = i;            
+            break;
+        }
+    }
+    
+    if(badNode == -1) {
+        std::cerr << "Value to remove not found" << std::endl;
+        return;
+    }
+
+    //swap value with end
+    std::swap(arr[badNode], arr[_size - 1]);
+
+    //reduce size to 'discard' value
+    _size--;
+
+    //bubble the swapped value down
+    heapifyDown(badNode);
+}
+
+template<class T>
+inline T maxHeap<T>::extractMax() {
+    T temp = getMax();
+
+    //swap max with final
+    std::swap(arr[0], arr[_size - 1]);
+
+    //reduce size to 'discard' previous max
+    _size--;
+
+    //bubble root (now final element) down
+    heapifyDown(0);
+
+    return temp;
+}
+
+template<class T>
+inline void maxHeap<T>::insert(T _key) {
+    //double capacity if needed
+    if (_size == capacity) {
+        capacity *= 2;
+        T* temp = new T[capacity];
+        for(int i = 0; i < _size; i++) {
+            temp[i] = arr[i];
+        }
+        delete[] arr;
+        arr = temp;
+    }
+
+    //insert new value at final index
+    arr[_size] = _key;
+
+    //bubble it up
+    heapifyUp(_size);
+
+    //increment size
+    _size++;
 }
 
 //generate heap from array w/ heapify
@@ -93,18 +181,15 @@ inline void maxHeap<T>::heapifyUp(int node) {
     //larger node should be at the top
     int pNode = getParent(node);
 
-    if(pNode == -1) {
+    if(pNode == -1)
         return;
-    }
 
     //heapifyUp has a while because assume we swap up multiple times
     //and a value that's higher than us is on top after swapping
     //e.g try heapifying up 11 to 10 and then 1.
     while (arr[node] > arr[pNode]) {
         //if child is larger than its parent, then swap up, and keep swapping
-        //up till the child (current) is no longer greater than its parent
-        
-        // std::cout << "Swapped " << arr[node] << " and " << arr[pNode] << std::endl; 
+        //up till the child (current) is no longer greater than its parent        
         std::swap(arr[node], arr[pNode]);
         heapifyUp(pNode);
     }
@@ -127,8 +212,6 @@ inline void maxHeap<T>::heapifyDown(int node) {
     if (maxValNode != node) {
         //if one of the children is larger than the parent (current), then swap
         //them and keep swapping down till no child is larger than the parent
-        
-        // std::cout << "Swapped " << arr[node] << " and " << arr[maxValNode] << std::endl; 
         std::swap(arr[maxValNode], arr[node]);
         heapifyDown(maxValNode);
     }
@@ -138,7 +221,7 @@ inline void maxHeap<T>::heapifyDown(int node) {
 template<class T>
 inline int maxHeap<T>::getLeftChild(int parent) {
     int ans = (parent * 2) + 1;
-    return (ans > _size) ? -1 : ans;
+    return (ans > _size - 1) ? -1 : ans;
 }
 
 template<class T>

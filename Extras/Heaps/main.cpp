@@ -2,18 +2,18 @@
 #include "maxHeap.h"
 #include "minHeap.h"
 
-#define cap1 7
+#define cap 7
 
 int main () {
-    int* arr = new int[cap1] {1, 10, 3, 11, 5, 6, 4};
+    int* arr = new int[cap] {1, 10, 3, 11, 5, 6, 4};
+    
+    minHeap<int>::sort(arr, cap);
 
-    for(int i = 0; i < cap1; i++) {
+    std::cout << "Sorted Array: ";
+    for (int i = 0; i < cap; i++) {
         std::cout << arr[i] << " ";
     }
-    std::cout << std::endl << std::endl;
-
-    maxHeap<int> h1(arr, cap1);
-    h1.print();
+    std::cout << std::endl;
 
     return 0;
 }
