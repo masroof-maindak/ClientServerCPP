@@ -2,7 +2,7 @@
 #define MINHEAP_H
 
 #include <iostream>
-#include <bits/stdc++.h>
+#include <utility>
 
 template <class T>
 class minHeap
@@ -51,12 +51,7 @@ public:
     ~minHeap() {delete[] arr;} // deallocate the memory
 };
 
-template <class T>
-inline minHeap<T>::insert(){}
-template <class T>
-inline minHeap<T>::erase(){}
-template <class T>
-inline minHeap<T>::extractMin(){}
+//mac mil
 
 //generate heap from array w/ heapify
 template <class T>
@@ -89,7 +84,7 @@ inline void minHeap<T>::heapifyUp(int node) {
 
     //if child is smaller, then swap, and keep swapping
     if (arr[node] < arr[pNode]) {
-        swap(arr[node], arr[pNode]);
+        std::swap(arr[node], arr[pNode]);
         heapifyUp(pNode);
     }
 }
@@ -109,7 +104,7 @@ inline void minHeap<T>::heapifyDown(int node) {
 
     //if child is smaller, then swap, and keep swapping
     if(arr[minValNode] < arr[node]) {
-        swap(arr[minValNode], arr[node]);
+        std::swap(arr[minValNode], arr[node]);
         heapifyDown(minValNode);
     }
 }

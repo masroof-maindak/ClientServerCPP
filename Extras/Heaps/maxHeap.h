@@ -21,10 +21,10 @@ private:
     // return -1 if it doesn't exist
     
     void heapifyUp(int node); // restore the heap property
-    // compare children with parent and swap if disruption exists
+    // compare children with parent and std::swap if disruption exists
     
     void heapifyDown(int node); // restore the heap property
-    // compare parent with children and swap if disruption exists
+    // compare parent with children and std::swap if disruption exists
     
 public:
     maxHeap(); // make an empty heap
@@ -68,6 +68,6 @@ inline int maxHeap<T>::getParent(int child) {
 
 //default constructor
 template<class T>
-inline minHeap<T>::minHeap() : _size(0), capacity(0), arr(nullptr) {}
+inline maxHeap<T>::maxHeap() : _size(0), capacity(0), arr(nullptr) {}
 
 #endif
