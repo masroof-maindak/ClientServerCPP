@@ -24,7 +24,7 @@ void* Heap::ITUN (size_t _size) {
             //write size to char arr
             freeAddress[0] = _size;
 
-            //reduce the size of that free (free till now) segment in the vector
+            //reduce the size of that free (free till now) segment in the structure
             shortenVector(i, _size);
 
             //return pointer to segment
@@ -40,14 +40,17 @@ void* Heap::ITUN (size_t _size) {
 }
 
 void Heap::shortenVector(int index, size_t _size) {
+    std::pair<int, char*> temp;
+
     // if size - _size == 0, delete that 'block' from the vector of free segments.
     if(_size + 1 == freeSegments[index].first){
         freeSegments.erase(freeSegments.begin() + index);
     }
 
     //if the size of the free segment is greater than the size of the incoming memory
-    //reduce it, and add the new free segment to the vector
+    //reduce it, and add the new free segment to the structure
     else {
+
         freeSegments[index].second += (_size + 4); //move pointer (size + 4) bytes forward
         freeSegments[index].first -= (_size + 4); //reduce size of free segment by (size + 4) bytes
     }

@@ -238,6 +238,8 @@ inline int maxHeap<T>::getParent(int child) {
 
 //default constructor
 template<class T>
-inline maxHeap<T>::maxHeap() : _size(0), capacity(0), arr(nullptr) {}
+inline maxHeap<T>::maxHeap() : _size(0), capacity(10) {
+    arr = new T[capacity];
+}
 
 #endif

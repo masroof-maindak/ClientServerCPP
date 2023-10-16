@@ -197,7 +197,7 @@ inline void minHeap<T>::heapifyUp(int node) {
 
 template<class T>
 inline void minHeap<T>::heapifyDown(int node) {
-    //smaller node should be at the bottom
+    //larger node should be at the bottom
     int lNode = getLeftChild(node);
     int rNode = getRightChild(node);
     int minValNode = node;
@@ -238,6 +238,8 @@ inline int minHeap<T>::getParent(int child) {
 
 //default constructor
 template<class T>
-inline minHeap<T>::minHeap() : _size(0), capacity(0), arr(nullptr) {}
+inline minHeap<T>::minHeap() : _size(0), capacity(10) {
+    arr = new T[capacity];
+}
 
 #endif
