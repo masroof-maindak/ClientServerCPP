@@ -1,5 +1,5 @@
-#ifndef IMAGE_PROCESSING_H
-#define IMAGE_PROCESSING_H
+#ifndef IMAGE_PROCESS_H
+#define IMAGE_PROCESS_H
 #define THRESH 180
 
 #include <utility>

@@ -2,58 +2,74 @@
 #include <vector>
 #include "heap.h"
 
-using namespace std;
-
 Heap::Heap(){
     freeSegments.push_back(make_pair(HEAP_SIZE, arr));
     freeMemory.insert(make_pair(HEAP_SIZE, arr));
 }
 
-void* Heap::ITUN (size_t _size) {   
+void* Heap::ITUN (size_t _size) {
+    //store elements in a vector till required 'size' found
+    std::vector<pair<int,char*>> storage;
+    std::pair<int, char*> element;
+    int count = 0;
 
-    //loop through free info
-    for(int i = 0; i < freeSegments.size(); i++) {
+    //keep searching till the 'size' we find is not either equal to requirement or greater
+    //                                              //or we exceed the bounds of the heap
+    do {
+        //get element at top
+        element = freeMemory.extractMin();
 
-        //if size of incoming memory is smaller than or equal to size of free segment + 4 bytes to store size
-        if(freeSegments[i].first >= _size + 4) {
+        //store it for later
+        storage.push_back(element);
+        
+        //increment count
+        count++;
+    } while (!(element.first >= _size + 4) and count < freeMemory.size());
 
-            //store that address pointer
-            int* freeAddress = (int*)freeSegments[i].second;
+    //now, 'element' contains the piece of memory we want to manipulate
+    //at least, I hope so...
+    
+    //start off by removing it from the vector
+    storage.pop_back();
 
-            // cout << "DEBUG - Memory allocated at address: " << freeAddress << endl;
-            //write size to char arr
-            freeAddress[0] = _size;
+    //put back the ones popped before it back into the heap
+    for (int i = 0; i < storage.size(); i++)
+        freeMemory.insert(storage[i]);
 
-            //reduce the size of that free (free till now) segment in the structure
-            shortenVector(i, _size);
+    //if we DID manage to find a sexy node we need:
+    if (element.first >= _size + 4) {
+        //then, work on that one node that is cool
+        //start off by storing the memory it's pointing as an int
+        int* freeAddress = (int*)element.second;
 
-            //return pointer to segment
-            // cout << "DEBUG - Memory Returned at address: " << freeAddress + 1 << endl;
-            return freeAddress + 1;
-            //+ 1 to account for the byte used to hold the size of that segment
-        }
+        //we stored it as an int so we can write the size into it
+        freeAddress[0] = _size;
 
-    }
+        //now, we modify the node to shorten/eliminate it
+        shortenHeap(element, _size);
 
-    throw invalid_argument("Not enough memory available.");
+        //and finally, send back the pointer to where the segment starts from
+        return freeAddress + 1; //+1 to account for the byte used to hold the size
+    } 
+
+    //if we didn't however find the sexy node
+    //add the last popped node back anyway
+    freeMemory.insert(element);
+
+    //and return jack shit
+    std::cerr << "Not enough memory available." << std::endl;
     return nullptr;
 }
 
-void Heap::shortenVector(int index, size_t _size) {
-    std::pair<int, char*> temp;
+void Heap::shortenHeap(std::pair<int, char*> temp, size_t _size) {
+    //if size requirement matches perfectly, just remove that shit permanently, i.e continue:
+    if (_size + 1 == temp.first)
+        return;
 
-    // if size - _size == 0, delete that 'block' from the vector of free segments.
-    if(_size + 1 == freeSegments[index].first){
-        freeSegments.erase(freeSegments.begin() + index);
-    }
-
-    //if the size of the free segment is greater than the size of the incoming memory
-    //reduce it, and add the new free segment to the structure
-    else {
-
-        freeSegments[index].second += (_size + 4); //move pointer (size + 4) bytes forward
-        freeSegments[index].first -= (_size + 4); //reduce size of free segment by (size + 4) bytes
-    }
+    //if it doesn't, that means that we have to reduce the size a bit and add it back to the heap
+    temp.first -= (_size + 4);
+    temp.second += (_size + 4);
+    freeMemory.insert(temp);
 }
 
 void Heap::ITUD(void* ptr){
@@ -63,21 +79,35 @@ void Heap::ITUD(void* ptr){
 
     //make that area available for over-writing again.
     // cout << "\nDEBUG - Memory deallocated at address: " << ptr << endl;
-    lengthenVector(ptr);
+    lengthenHeap(ptr);
 }
 
-void Heap::lengthenVector(void* ptr) {
-    int* size;
-    size = static_cast<int*>(ptr) - 1;
+void Heap::lengthenHeap(void* ptr) {
+    //'size' points to the point behind ptr starts (i.e where we literally stored the size)
+    //of the segment that is now going to follow
+    int* size = static_cast<int*>(ptr) - 1;
+
+    //dereference it to store it in an umm
     size_t umm = *size;
-    freeSegments.push_back(make_pair(umm + 4, static_cast<char*>(ptr)));
+    
+    //add to the heap
     freeMemory.insert(make_pair(umm + 4, static_cast<char*>(ptr)));
 }
 
-int Heap::getFreeSize() {   
-    int size = 0;
-    for(int i = 0; i < freeSegments.size(); i++){
-        size += freeSegments[i].first;
+int Heap::getFreeSize() {
+    int ans = 0;
+    vector<pair<int, char*>> storage;
+
+    //store segments
+    while (!freeMemory.empty()) {
+        std::pair<int, char*> temp = freeMemory.extractMin();
+        ans += temp.first;
+        storage.push_back(temp);
     }
-    return size;
+
+    //add segments back
+    for (int i = 0; i < storage.size(); i++)
+        freeMemory.insert(storage[i]);
+    storage.clear();
+    return ans;
 }

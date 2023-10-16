@@ -1,5 +1,6 @@
 .vscode/
-a.out
+Client/.vscode/
+Extras/Heaps/heapMemory/.vscode/
+server
 Client/a.out
-file.txt
-shit.txt
+Extras/ImageProcessing/a.out
