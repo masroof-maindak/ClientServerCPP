@@ -9,10 +9,12 @@
 
 #include <random>        //thread image ID generation
 #include <vector>        //store image
+#include <utility>       //pair
 #include <queue>         //processing/answer queues
 #include <chrono>        //answer queue pops un-picked-up answer
 
 #include "imageProcess.h" //flood fill algo to count characters in the image
+#include "Extras/Heaps/minHeap.h"
 
 #define SLEEP_TIME 400000 //0.4s
 
@@ -56,6 +58,9 @@ void* receiveImage(void* clientSocketPtr) {
     //2d matrix to store image
     std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
 
+    //heap to store image
+    minHeap<pair<int, vector<uint8_t>>> receivingImage;
+
     //receive image row by row
     for (int row = 0; row < numRows; row++) {
         int intSize = sizeof(uint32_t);
@@ -78,13 +83,19 @@ void* receiveImage(void* clientSocketPtr) {
 
         //rowImageData now points to where image starts from
         uint8_t* rowImageData = rowData + intSize;
+        
+        vector<uint8_t> tempRowStorage (numCols);
 
         //copy contents of rowImageData short[] heap array over to vector matrix
         for(int col = 0; col < numCols; col++) {
-            receivedImage[row][col] = rowImageData[col];
+            tempRowStorage[col] = rowImageData[col];
         }
 
-        std::cout << "Received row: " << rowID << std::endl;
+        //make pair of rowID and new vector to store into heap later
+        std::pair<int, std::vector<uint8_t>> tempRow = {rowID, tempRowStorage};
+
+        //and push to heap
+        receivingImage.insert(tempRow);
     }
 
     //RECV() arguments:
@@ -92,6 +103,14 @@ void* receiveImage(void* clientSocketPtr) {
     //2. Pointer to a buffer variable where I'll store said data
     //3. size of buffer in bytes
     //4. int flags, 0 - none
+
+    //put (sorted) contents of heap into 2d matrix we made earlier
+    for (int row = 0; row < numRows; row++) {
+        pair<int, vector<uint8_t>> minRow = receivingImage.extractMin();
+        for(int col = 0; col < numCols; col++) {
+            receivedImage[row][col] = minRow.second[col];
+        }
+    }
 
     //randomly generated number to serve as identification ID
     std::random_device rd;
@@ -132,11 +151,9 @@ void* receiveImage(void* clientSocketPtr) {
         close(clientSocket); pthread_exit(NULL);
     }
 
-    //Cleanup
-    std::cout << "Successfully sent character count." << std::endl;
-    // Close the client socket
+    //cleanup + closing client socket
+    std::cout << "Successfully sent character count. Closing client socket." << std::endl;
     close(clientSocket);
-    std::cout << "Closing client socket." << std::endl;
     pthread_exit(NULL);
 }
 

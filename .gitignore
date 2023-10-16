@@ -2,5 +2,6 @@
 Client/.vscode/
 Extras/Heaps/heapMemory/.vscode/
 server
+main
 Client/a.out
 Extras/ImageProcessing/a.out
