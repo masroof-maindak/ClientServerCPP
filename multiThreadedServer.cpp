@@ -1,4 +1,4 @@
-#include <iostream>      //not sure about this one chief
+#include <iostream>
 
 #include <unistd.h>      //socket-handling + system-level operations
 #include <sys/socket.h>  //for sockets
@@ -13,8 +13,8 @@
 #include <queue>         //processing/answer queues
 #include <chrono>        //answer queue pops un-picked-up answer
 
-#include "imageProcess.h" //flood fill algo to count characters in the image
-#include "Extras/Heaps/minHeap.h"
+#include "lib/imageProcess.h" //flood fill algo to count characters in the image
+#include "lib/minHeap.h"
 
 #define SLEEP_TIME 400000 //0.4s
 
