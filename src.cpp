@@ -112,6 +112,13 @@ void* receiveImage(void* clientSocketPtr) {
         }
     }
 
+    /* TODO:
+        Ultra brain damage implementation to manually copy over all the rows.
+        I could've (should've*)
+            - Swapped row POINTERS, or even better,
+            - Swapped the rowIDs and just iterated through those
+    */
+
     //randomly generated number to serve as identification ID
     std::random_device rd;
     std::mt19937 gen(rd());
