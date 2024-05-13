@@ -7,13 +7,13 @@
 #include <arpa/inet.h>   //handling IP addresses + converting b/w host & network addresses
 #include <pthread.h>     //threads
 
-#include <random>        //thread image ID generation
-#include <vector>        //store image
-#include <utility>       //pair
-#include <queue>         //processing/answer queues
-#include <chrono>        //answer queue pops un-picked-up answer
+#include <random>
+#include <vector>
+#include <utility>
+#include <queue>
+#include <chrono>
 
-#include "lib/imageProcess.h" //flood fill algo to count characters in the image
+#include "lib/imageProcess.h"
 #include "lib/minHeap.h"
 
 #define SLEEP_TIME 400000 //0.4s
@@ -37,10 +37,10 @@ queue<answer> answerQueue;
 
 //client thread
 void* receiveImage(void* clientSocketPtr) {
+    
     int clientSocket = *((int*)clientSocketPtr);
     free(clientSocketPtr);
 
-    //receive image rows
     int numRows, numCols;
     ssize_t bytesRead = recv(clientSocket, &numRows, sizeof(numRows), 0);
     if (bytesRead != sizeof(numRows)) {
@@ -48,17 +48,14 @@ void* receiveImage(void* clientSocketPtr) {
         close(clientSocket); pthread_exit(NULL);
     }
 
-    //and columns
     bytesRead = recv(clientSocket, &numCols, sizeof(numCols), 0);
     if (bytesRead != sizeof(numCols)) {
         perror("Error receiving image columns");
         close(clientSocket); pthread_exit(NULL);
     }
 
-    //2d matrix to store image
     std::vector<std::vector<uint8_t>> receivedImage(numRows, std::vector<uint8_t>(numCols));
 
-    //heap to store image
     minHeap<pair<int, vector<uint8_t>>> receivingImage;
 
     //receive image row by row
@@ -119,32 +116,21 @@ void* receiveImage(void* clientSocketPtr) {
             - Swapped the rowIDs and just iterated through those
     */
 
-    //randomly generated number to serve as identification ID
     std::random_device rd;
     std::mt19937 gen(rd());
     unsigned int randomlyGeneratedID = gen();
+    imageInfo sentToWorker = {&receivedImage, numRows, numCols, randomlyGeneratedID};
+    processingQueue.push(sentToWorker);
 
-    //create data structure to hold processing queue information
-    //send vector by reference to prevent unecessary copies
-    imageInfo shitToSendToWorker = {&receivedImage, numRows, numCols, randomlyGeneratedID};
-
-    //push to the queue that only the worker thread can pop from
-    processingQueue.push(shitToSendToWorker);
-
-    // int charCount = charCounter(receivedImage, numRows, numCols);
     int charCount = -1;
 
     //pop answer from answer queue now (worker thread pushes its answer to this)
     while(true) {
         if (!answerQueue.empty()) {
             answer temp = answerQueue.front();
-            //confirming if element at top of Queue is the one generated for this thread
             if (temp.randomID == randomlyGeneratedID) {
-                //if it is, remove it from the answer queue
                 answerQueue.pop();
-                //store the answer generated for this thread
                 charCount = temp.blackBodies;
-                //and exit the whileloop
                 break;
             }
         } else {
@@ -229,14 +215,16 @@ int main() {
     //this thread processes all the images in the processing queue
     pthread_t workerThread;
     if (pthread_create(&workerThread, NULL, readProcessingQueue, NULL) != 0) {
-        perror("Worker thread creation failed"); return 1;
+        perror("Worker thread creation failed");
+        return 1;
     }
 
     //create the thread that handles the answer queue
     pthread_t answerThread; //pops if the top of the queue remains unchanged for a fixed time period
     //e.g when the client disconnects
     if (pthread_create(&answerThread, NULL, readAnswerQueue, NULL) != 0) {
-        perror("Answer thread creation failed"); return 1;
+        perror("Answer thread creation failed");
+        return 1;
     }
 
     //PTHREAD_CREATE() arguments:
@@ -245,10 +233,11 @@ int main() {
     //3. function it's working in (scope of reference?)
     //4. function parameters
 
-    //big daddy server socket
+    //server socket
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
-        perror("Socket creation failed"); return 1;
+        perror("Socket creation failed");
+        return 1;
     }
 
     //SOCKET() arguments:
@@ -259,15 +248,16 @@ int main() {
     //make it so that it overwrites a previous iteration's binding to the um uhhh thing
     int reuse = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) {
-        perror("setsockopt"); return 1;
+        perror("setsockopt"); 
+        return 1;
     }
 
     //bind the socket to an IP address, port and network protocol
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;    //sin = socket internet
-                    					//yes, it's fucking stupid.
     serverAddr.sin_port = htons(9989);  //port 9989 basically - htons = host TO network short (like the data type)
-    serverAddr.sin_addr.s_addr = INADDR_ANY; //// All available network interfaces - e.g Wifi/Ethernet/Bluetooth, etc.
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // All available network interfaces - e.g Wifi/Ethernet/Bluetooth, etc.
+    
     // sin_addr - the field used to specify the IP address associated with the socket. 
     // Only sort of a wrapper for the s_addr value in this case. 
     // Exists for compatibility, extensibility, readability, and consistency. 
@@ -276,12 +266,14 @@ int main() {
 
     //bind - associates socket with specific network address (IP + port)
     if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("Binding failed"); return 1;
+        perror("Binding failed"); 
+        return 1;
     }
 
     //isten for incoming connections
     if (listen(serverSocket, 5) == -1) {
-        perror("Listening failed"); return 1;
+        perror("Listening failed"); 
+        return 1;
     }
 
     //LISTEN() arguments:
@@ -310,14 +302,16 @@ int main() {
 
         //in case of error, accept() returns -1
         if (*clientSocket == -1) {
-            perror("Failed to accept connection!"); return 1;
+            perror("Failed to accept connection!"); 
+            return 1;
         }
 
         //create client thread
         //inits the client in a separate function, passing the socket as a parameter
         pthread_t clientThread;
         if (pthread_create(&clientThread, NULL, receiveImage, (void*)clientSocket) != 0) {
-            perror("Thread creation failed"); return 1;
+            perror("Thread creation failed"); 
+            return 1;
         }
 
         pthread_detach(clientThread); // Detach the thread to allow it to clean up automatically
